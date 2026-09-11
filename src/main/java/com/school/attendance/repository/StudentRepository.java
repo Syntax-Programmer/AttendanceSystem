@@ -6,6 +6,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class StudentRepository {
@@ -39,7 +41,7 @@ public class StudentRepository {
     public Optional<Student> findByRollNo(int rollNo) throws SQLException {
         String sql = """
         SELECT
-            roll_no, class_number, section, name, date_of_birth, gender, 
+            roll_no, class_number, section, name, date_of_birth, gender,
             parent_name, parent_phone, address
         FROM students
         WHERE roll_no = ?
@@ -73,5 +75,41 @@ public class StudentRepository {
         }
 
         return Optional.empty();
+    }
+
+    public List<Student> findAll() throws SQLException {
+        String sql = """
+        SELECT
+            roll_no, class_number, section, name, date_of_birth, gender,
+            parent_name, parent_phone, address
+        FROM students
+        ORDER BY class_number, section, roll_no
+        """;
+
+        List<Student> students = new ArrayList<>();
+
+        try (
+            Connection connection = DatabaseConnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql);
+            ResultSet result = statement.executeQuery()
+        ) {
+            while (result.next()) {
+                Student student = new Student();
+                student.setRollNo(result.getInt("roll_no"));
+                student.setClassNumber(result.getInt("class_number"));
+                student.setSection(result.getString("section"));
+                student.setName(result.getString("name"));
+                student.setDateOfBirth(
+                    result.getObject("date_of_birth", java.time.LocalDate.class)
+                );
+                student.setGender(result.getString("gender"));
+                student.setParentName(result.getString("parent_name"));
+                student.setParentPhone(result.getString("parent_phone"));
+                student.setAddress(result.getString("address"));
+                students.add(student);
+            }
+        }
+
+        return students;
     }
 }

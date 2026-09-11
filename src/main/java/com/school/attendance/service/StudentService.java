@@ -3,6 +3,7 @@ package com.school.attendance.service;
 import com.school.attendance.model.Student;
 import com.school.attendance.repository.StudentRepository;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Optional;
 
 public class StudentService {
@@ -43,5 +44,9 @@ public class StudentService {
         if (student.getName() == null || student.getName().isBlank()) {
             throw new IllegalArgumentException("Student name cannot be empty.");
         }
+    }
+
+    public List<Student> getAllStudents() throws SQLException {
+        return studentRepository.findAll();
     }
 }
