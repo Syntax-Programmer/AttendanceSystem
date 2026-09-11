@@ -1,5 +1,10 @@
 package com.school.attendance.ui;
 
+import com.school.attendance.repository.AttendanceRepository;
+import com.school.attendance.repository.StudentRepository;
+import com.school.attendance.service.AttendanceService;
+import com.school.attendance.service.StudentService;
+import java.time.LocalDate;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -9,6 +14,9 @@ import javafx.scene.layout.VBox;
 
 public class Dashboard extends BorderPane {
 
+    private final StudentService studentService;
+    private final AttendanceService attendanceService;
+
     private Button dashboardButton;
     private Button attendanceButton;
     private Button studentsButton;
@@ -16,6 +24,11 @@ public class Dashboard extends BorderPane {
     private Button settingsButton;
 
     public Dashboard() {
+        StudentRepository studentRepository = new StudentRepository();
+        AttendanceRepository attendanceRepository = new AttendanceRepository();
+        studentService = new StudentService(studentRepository);
+        attendanceService = new AttendanceService(studentRepository, attendanceRepository);
+
         setLeft(createSidebar());
         setCenter(createDashboardContent());
     }
@@ -124,15 +137,41 @@ public class Dashboard extends BorderPane {
 
     private HBox createStatistics() {
         HBox statistics = new HBox(15);
+        LocalDate today = LocalDate.now();
 
-        statistics
-            .getChildren()
-            .addAll(
-                createStatCard("TOTAL STUDENTS", "1,248", "Registered students"),
-                createStatCard("PRESENT TODAY", "1,143", "91.6% attendance"),
-                createStatCard("LATE", "42", "Students marked late"),
-                createStatCard("ABSENT", "63", "Students absent today")
+        try {
+            long totalStudents = studentService.getStudentCount();
+            long present = attendanceService.getPresentCount(today);
+            long late = attendanceService.getLateCount(today);
+            long absent = attendanceService.getAbsentCount(today);
+            double attendancePercentage = 0;
+            if (totalStudents > 0) {
+                attendancePercentage = ((double) present / totalStudents) * 100;
+            }
+
+            statistics.getChildren().addAll(
+                createStatCard(
+                    "TOTAL STUDENTS",
+                    String.valueOf(totalStudents),
+                    "Registered students"
+                ),
+                createStatCard(
+                    "PRESENT TODAY",
+                    String.valueOf(present),
+                    String.format("%.1f%% attendance", attendancePercentage)
+                ),
+                createStatCard("LATE", String.valueOf(late), "Students marked late"),
+                createStatCard("ABSENT", String.valueOf(absent), "Students absent today")
             );
+        } catch (Exception e) {
+            e.printStackTrace();
+            statistics.getChildren().addAll(
+                createStatCard("TOTAL STUDENTS", "—", "Unable to load"),
+                createStatCard("PRESENT TODAY", "—", "Unable to load"),
+                createStatCard("LATE", "—", "Unable to load"),
+                createStatCard("ABSENT", "—", "Unable to load")
+            );
+        }
 
         return statistics;
     }
