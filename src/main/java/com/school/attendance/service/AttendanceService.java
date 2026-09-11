@@ -53,4 +53,8 @@ public class AttendanceService {
     public List<Attendance> getAttendanceForDate(LocalDate date) throws SQLException {
         return attendanceRepository.findByDate(date);
     }
+
+    public Optional<Student> findStudent(int rollNo) throws SQLException {
+        return studentRepository.findByRollNo(rollNo);
+    }
 }
