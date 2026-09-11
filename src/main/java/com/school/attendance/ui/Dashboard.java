@@ -69,7 +69,7 @@ public class Dashboard extends BorderPane {
             setActiveButton(studentsButton);
         });
         reportsButton.setOnAction(event -> {
-            showPlaceholder("Attendance Reports");
+            setCenter(new Reports());
             setActiveButton(reportsButton);
         });
         settingsButton.setOnAction(event -> {
@@ -149,28 +149,32 @@ public class Dashboard extends BorderPane {
                 attendancePercentage = ((double) present / totalStudents) * 100;
             }
 
-            statistics.getChildren().addAll(
-                createStatCard(
-                    "TOTAL STUDENTS",
-                    String.valueOf(totalStudents),
-                    "Registered students"
-                ),
-                createStatCard(
-                    "PRESENT TODAY",
-                    String.valueOf(present),
-                    String.format("%.1f%% attendance", attendancePercentage)
-                ),
-                createStatCard("LATE", String.valueOf(late), "Students marked late"),
-                createStatCard("ABSENT", String.valueOf(absent), "Students absent today")
-            );
+            statistics
+                .getChildren()
+                .addAll(
+                    createStatCard(
+                        "TOTAL STUDENTS",
+                        String.valueOf(totalStudents),
+                        "Registered students"
+                    ),
+                    createStatCard(
+                        "PRESENT TODAY",
+                        String.valueOf(present),
+                        String.format("%.1f%% attendance", attendancePercentage)
+                    ),
+                    createStatCard("LATE", String.valueOf(late), "Students marked late"),
+                    createStatCard("ABSENT", String.valueOf(absent), "Students absent today")
+                );
         } catch (Exception e) {
             e.printStackTrace();
-            statistics.getChildren().addAll(
-                createStatCard("TOTAL STUDENTS", "—", "Unable to load"),
-                createStatCard("PRESENT TODAY", "—", "Unable to load"),
-                createStatCard("LATE", "—", "Unable to load"),
-                createStatCard("ABSENT", "—", "Unable to load")
-            );
+            statistics
+                .getChildren()
+                .addAll(
+                    createStatCard("TOTAL STUDENTS", "—", "Unable to load"),
+                    createStatCard("PRESENT TODAY", "—", "Unable to load"),
+                    createStatCard("LATE", "—", "Unable to load"),
+                    createStatCard("ABSENT", "—", "Unable to load")
+                );
         }
 
         return statistics;
