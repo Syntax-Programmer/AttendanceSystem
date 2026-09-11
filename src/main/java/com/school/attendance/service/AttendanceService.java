@@ -69,4 +69,8 @@ public class AttendanceService {
     public long getAbsentCount(LocalDate date) throws SQLException {
         return attendanceRepository.countByDateAndStatus(date, AttendanceStatus.ABSENT);
     }
+
+    public List<Object[]> getAttendanceReport(LocalDate date) throws SQLException {
+        return attendanceRepository.findReportByDate(date);
+    }
 }
