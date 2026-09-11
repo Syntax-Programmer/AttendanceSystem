@@ -57,4 +57,16 @@ public class AttendanceService {
     public Optional<Student> findStudent(int rollNo) throws SQLException {
         return studentRepository.findByRollNo(rollNo);
     }
+
+    public long getPresentCount(LocalDate date) throws SQLException {
+        return attendanceRepository.countByDateAndStatus(date, AttendanceStatus.PRESENT);
+    }
+
+    public long getLateCount(LocalDate date) throws SQLException {
+        return attendanceRepository.countByDateAndStatus(date, AttendanceStatus.LATE);
+    }
+
+    public long getAbsentCount(LocalDate date) throws SQLException {
+        return attendanceRepository.countByDateAndStatus(date, AttendanceStatus.ABSENT);
+    }
 }

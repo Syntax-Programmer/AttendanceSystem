@@ -112,4 +112,16 @@ public class StudentRepository {
 
         return students;
     }
+
+    public long countStudents() throws SQLException {
+        String sql = "SELECT COUNT(*) FROM students";
+        try (
+            Connection connection = DatabaseConnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql);
+            ResultSet result = statement.executeQuery()
+        ) {
+            result.next();
+            return result.getLong(1);
+        }
+    }
 }

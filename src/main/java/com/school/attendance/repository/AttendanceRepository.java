@@ -119,4 +119,24 @@ public class AttendanceRepository {
 
         return attendance;
     }
+
+    public long countByDateAndStatus(java.time.LocalDate date, AttendanceStatus status)
+        throws SQLException {
+        String sql = """
+        SELECT COUNT(*) FROM attendance
+        WHERE attendance_date = ? AND status = ?
+        """;
+
+        try (
+            Connection connection = DatabaseConnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)
+        ) {
+            statement.setObject(1, date);
+            statement.setString(2, status.name());
+            try (ResultSet result = statement.executeQuery()) {
+                result.next();
+                return result.getLong(1);
+            }
+        }
+    }
 }

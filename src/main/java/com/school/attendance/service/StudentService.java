@@ -49,4 +49,8 @@ public class StudentService {
     public List<Student> getAllStudents() throws SQLException {
         return studentRepository.findAll();
     }
+
+    public long getStudentCount() throws SQLException {
+        return studentRepository.countStudents();
+    }
 }
