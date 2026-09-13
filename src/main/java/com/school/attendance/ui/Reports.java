@@ -15,6 +15,9 @@ import javafx.scene.layout.*;
 
 public class Reports extends BorderPane {
 
+    private final ComboBox<String> classFilter = new ComboBox<>();
+    private final ComboBox<String> sectionFilter = new ComboBox<>();
+
     private final AttendanceService attendanceService;
     private final DatePicker datePicker = new DatePicker(LocalDate.now());
     private final TableView<Object[]> reportTable = new TableView<>();
@@ -54,16 +57,38 @@ public class Reports extends BorderPane {
         VBox card = new VBox(10);
         card.getStyleClass().add("card");
 
-        Label label = new Label("REPORT DATE");
+        Label label = new Label("REPORT FILTERS");
         label.getStyleClass().add("stat-title");
+        // Date
         datePicker.setPrefHeight(42);
+        // Class
+        classFilter.getItems().add("All");
+        for (int i = 1; i <= 12; i++) {
+            classFilter.getItems().add("Class " + i);
+        }
+        classFilter.setValue("All");
+        classFilter.setPrefHeight(42);
+        classFilter.setPrefWidth(150);
+        // Section
+        sectionFilter.getItems().addAll("All", "A", "B", "C", "D");
+        sectionFilter.setValue("All");
+        sectionFilter.setPrefHeight(42);
+        sectionFilter.setPrefWidth(130);
 
+        // View button
         Button viewButton = new Button("View Report");
         viewButton.getStyleClass().add("primary-button");
         viewButton.setPrefHeight(42);
         viewButton.setOnAction(event -> loadReport());
 
-        HBox row = new HBox(10, datePicker, viewButton);
+        Label dateLabel = new Label("Date");
+        Label classLabel = new Label("Class");
+        Label sectionLabel = new Label("Section");
+        VBox dateBox = new VBox(5, dateLabel, datePicker);
+        VBox classBox = new VBox(5, classLabel, classFilter);
+        VBox sectionBox = new VBox(5, sectionLabel, sectionFilter);
+        HBox row = new HBox(20, dateBox, classBox, sectionBox, viewButton);
+        row.setAlignment(javafx.geometry.Pos.BOTTOM_LEFT);
         card.getChildren().addAll(label, row);
 
         return card;
@@ -159,12 +184,25 @@ public class Reports extends BorderPane {
 
     private void loadReport() {
         LocalDate date = datePicker.getValue();
-
         if (date == null) {
             return;
         }
+        Integer classNumber = null;
+        String selectedClass = classFilter.getValue();
+        if (selectedClass != null && !selectedClass.equals("All")) {
+            classNumber = Integer.parseInt(selectedClass.replace("Class ", ""));
+        }
+        String section = null;
+        String selectedSection = sectionFilter.getValue();
+        if (selectedSection != null && !selectedSection.equals("All")) {
+            section = selectedSection;
+        }
         try {
-            List<Object[]> records = attendanceService.getAttendanceReport(date);
+            List<Object[]> records = attendanceService.getAttendanceReport(
+                date,
+                classNumber,
+                section
+            );
             reportTable.setItems(FXCollections.observableArrayList(records));
             updateStatistics(records);
         } catch (Exception e) {

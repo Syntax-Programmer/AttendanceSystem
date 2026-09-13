@@ -173,4 +173,50 @@ public class AttendanceRepository {
 
         return records;
     }
+
+    public List<Object[]> findReportByDate(LocalDate date, Integer classNumber, String section)
+        throws SQLException {
+        String sql = """
+        SELECT
+            s.roll_no, s.name, s.class_number, s.section, a.status, a.marked_at
+        FROM students s
+        LEFT JOIN attendance a
+            ON s.roll_no = a.roll_no AND a.attendance_date = ?
+        WHERE (? IS NULL OR s.class_number = ?) AND (? IS NULL OR s.section = ?)
+        ORDER BY s.class_number, s.section, s.roll_no
+        """;
+
+        List<Object[]> records = new ArrayList<>();
+        try (
+            Connection connection = DatabaseConnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)
+        ) {
+            int index = 1;
+            // Date
+            statement.setObject(index++, date);
+            // Class filter
+            statement.setObject(index, classNumber);
+            index++;
+            statement.setObject(index, classNumber);
+            index++;
+            // Section filter
+            statement.setString(index, section);
+            index++;
+            statement.setString(index, section);
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    records.add(new Object[] {
+                        result.getInt("roll_no"),
+                        result.getString("name"),
+                        result.getInt("class_number"),
+                        result.getString("section"),
+                        result.getString("status"),
+                        result.getTimestamp("marked_at"),
+                    });
+                }
+            }
+        }
+
+        return records;
+    }
 }

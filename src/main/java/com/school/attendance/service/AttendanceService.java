@@ -73,4 +73,9 @@ public class AttendanceService {
     public List<Object[]> getAttendanceReport(LocalDate date) throws SQLException {
         return attendanceRepository.findReportByDate(date);
     }
+
+    public List<Object[]> getAttendanceReport(LocalDate date, Integer classNumber, String section)
+        throws SQLException {
+        return attendanceRepository.findReportByDate(date, classNumber, section);
+    }
 }
