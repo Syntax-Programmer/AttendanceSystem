@@ -21,6 +21,7 @@ public class Dashboard extends BorderPane {
     private Button attendanceButton;
     private Button studentsButton;
     private Button reportsButton;
+    private Button facultyButton;
     private Button settingsButton;
 
     public Dashboard() {
@@ -51,6 +52,7 @@ public class Dashboard extends BorderPane {
         attendanceButton = createNavButton("Attendance");
         studentsButton = createNavButton("Students");
         reportsButton = createNavButton("Reports");
+        facultyButton = createNavButton("Faculty");
         settingsButton = createNavButton("Settings");
 
         // Dashboard is active initially
@@ -72,6 +74,10 @@ public class Dashboard extends BorderPane {
             setCenter(new Reports());
             setActiveButton(reportsButton);
         });
+        facultyButton.setOnAction(event -> {
+            setCenter(new FacultyManagement());
+            setActiveButton(facultyButton);
+        });
         settingsButton.setOnAction(event -> {
             showPlaceholder("Settings");
             setActiveButton(settingsButton);
@@ -82,7 +88,8 @@ public class Dashboard extends BorderPane {
             dashboardButton,
             attendanceButton,
             studentsButton,
-            reportsButton
+            reportsButton,
+            facultyButton
         );
         // Push Settings to bottom
         VBox spacer = new VBox();
@@ -105,6 +112,7 @@ public class Dashboard extends BorderPane {
         attendanceButton.getStyleClass().remove("active");
         studentsButton.getStyleClass().remove("active");
         reportsButton.getStyleClass().remove("active");
+        facultyButton.getStyleClass().remove("active");
         settingsButton.getStyleClass().remove("active");
 
         activeButton.getStyleClass().add("active");

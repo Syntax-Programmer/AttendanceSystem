@@ -3,6 +3,7 @@ package com.school.attendance.service;
 import com.school.attendance.model.User;
 import com.school.attendance.repository.UserRepository;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Optional;
 import org.mindrot.jbcrypt.BCrypt;
 
@@ -52,5 +53,13 @@ public class AuthService {
         user.setRole(role);
 
         userRepository.save(user);
+    }
+
+    public List<User> getAllFaculty() throws SQLException {
+        return userRepository.findAllFaculty();
+    }
+
+    public void deleteUser(int userId) throws SQLException {
+        userRepository.deleteById(userId);
     }
 }
