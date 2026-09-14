@@ -6,7 +6,6 @@ import com.school.attendance.repository.AttendanceRepository;
 import com.school.attendance.repository.StudentRepository;
 import com.school.attendance.service.AttendanceService;
 import java.util.Optional;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;

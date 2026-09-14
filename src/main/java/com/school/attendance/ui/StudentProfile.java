@@ -7,7 +7,6 @@ import com.school.attendance.repository.AttendanceRepository;
 import com.school.attendance.service.AttendanceService;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;

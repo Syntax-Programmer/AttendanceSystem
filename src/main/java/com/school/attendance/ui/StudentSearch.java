@@ -6,7 +6,6 @@ import com.school.attendance.service.StudentService;
 import java.util.List;
 import java.util.Optional;
 import javafx.collections.FXCollections;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
