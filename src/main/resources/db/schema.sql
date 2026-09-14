@@ -29,3 +29,14 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('MANAGEMENT', 'FACULTY') NOT NULL
 );
+
+CREATE TABLE faculty_assignments (
+    assignment_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    class_number TINYINT NOT NULL,
+    section CHAR(1) NOT NULL,
+    FOREIGN KEY (user_id)
+        REFERENCES users(user_id)
+        ON DELETE CASCADE,
+    UNIQUE (user_id, class_number, section)
+);

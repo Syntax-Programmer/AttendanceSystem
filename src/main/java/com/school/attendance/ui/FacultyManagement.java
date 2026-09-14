@@ -37,8 +37,17 @@ public class FacultyManagement extends BorderPane {
         // Add faculty button
         Button addFacultyButton = new Button("+ Add Faculty");
         addFacultyButton.setOnAction(event -> showAddFacultyDialog());
+        addFacultyButton.getStyleClass().add("primary-button");
 
-        HBox actions = new HBox(addFacultyButton);
+        Button deleteFacultyButton = new Button("Delete Faculty");
+        deleteFacultyButton.setOnAction(event -> deleteSelectedFaculty());
+        deleteFacultyButton.getStyleClass().add("danger-button");
+
+        Button resetPasswordButton = new Button("Reset Password");
+        resetPasswordButton.setOnAction(event -> resetSelectedFacultyPassword());
+        resetPasswordButton.getStyleClass().add("secondary-button");
+
+        HBox actions = new HBox(10, addFacultyButton, resetPasswordButton, deleteFacultyButton);
         actions.setPadding(new Insets(20, 0, 15, 0));
 
         // Table columns
@@ -112,5 +121,54 @@ public class FacultyManagement extends BorderPane {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    private void deleteSelectedFaculty() {
+        User selectedUser = facultyTable.getSelectionModel().getSelectedItem();
+        if (selectedUser == null) {
+            showError("No Faculty Selected", "Please select a faculty member first.");
+            return;
+        }
+        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmation.setTitle("Delete Faculty");
+        confirmation.setHeaderText("Delete faculty account?");
+        confirmation.setContentText("Username: " + selectedUser.getUsername());
+        ButtonType result = confirmation.showAndWait().orElse(ButtonType.CANCEL);
+
+        if (result != ButtonType.OK) {
+            return;
+        }
+        try {
+            authService.deleteUser(selectedUser.getUserId());
+            loadFaculty();
+        } catch (Exception e) {
+            showError("Could not delete faculty.", e.getMessage());
+        }
+    }
+
+    private void resetSelectedFacultyPassword() {
+        User selectedUser = facultyTable.getSelectionModel().getSelectedItem();
+        if (selectedUser == null) {
+            showError("No Faculty Selected", "Please select a faculty member first.");
+            return;
+        }
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Reset Password");
+        dialog.setHeaderText("Reset password for " + selectedUser.getUsername());
+        dialog.setContentText("New password:");
+
+        dialog.showAndWait().ifPresent(newPassword -> {
+            try {
+                authService.resetPassword(selectedUser.getUserId(), newPassword);
+                Alert success = new Alert(Alert.AlertType.INFORMATION);
+                success.setTitle("Password Reset");
+                success.setHeaderText(null);
+                success.setContentText("Password reset successfully.");
+
+                success.showAndWait();
+            } catch (Exception e) {
+                showError("Could not reset password.", e.getMessage());
+            }
+        });
     }
 }

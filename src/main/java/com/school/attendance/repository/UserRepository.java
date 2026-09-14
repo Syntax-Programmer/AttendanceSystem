@@ -84,7 +84,8 @@ public class UserRepository {
 
     public void deleteById(int userId) throws SQLException {
         String sql = """
-        DELETE FROM users WHERE user_id = ?
+        DELETE FROM users
+        WHERE user_id = ? AND role = 'FACULTY'
         """;
 
         try (
@@ -92,6 +93,23 @@ public class UserRepository {
             PreparedStatement statement = connection.prepareStatement(sql)
         ) {
             statement.setInt(1, userId);
+            statement.executeUpdate();
+        }
+    }
+
+    public void updatePassword(int userId, String passwordHash) throws SQLException {
+        String sql = """
+        UPDATE users
+        SET password_hash = ?
+        WHERE user_id = ? AND role = 'FACULTY'
+        """;
+
+        try (
+            Connection connection = DatabaseConnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)
+        ) {
+            statement.setString(1, passwordHash);
+            statement.setInt(2, userId);
             statement.executeUpdate();
         }
     }

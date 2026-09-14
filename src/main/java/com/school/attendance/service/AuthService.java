@@ -45,6 +45,12 @@ public class AuthService {
         if (!role.equals("MANAGEMENT") && !role.equals("FACULTY")) {
             throw new IllegalArgumentException("Invalid role.");
         }
+        Optional<User> existingUser = userRepository.findByUsername(username);
+        if (existingUser.isPresent()) {
+            throw new IllegalArgumentException(
+                "Username already exists. Please choose another username."
+            );
+        }
 
         String passwordHash = BCrypt.hashpw(password, BCrypt.gensalt());
         User user = new User();
@@ -61,5 +67,13 @@ public class AuthService {
 
     public void deleteUser(int userId) throws SQLException {
         userRepository.deleteById(userId);
+    }
+
+    public void resetPassword(int userId, String newPassword) throws SQLException {
+        if (newPassword == null || newPassword.isBlank()) {
+            throw new IllegalArgumentException("Password cannot be empty.");
+        }
+        String passwordHash = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+        userRepository.updatePassword(userId, passwordHash);
     }
 }

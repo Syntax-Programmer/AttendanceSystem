@@ -44,6 +44,7 @@ public class LoginScreen extends VBox {
 
         Button loginButton = new Button("Login");
         loginButton.setMaxWidth(300);
+        loginButton.getStyleClass().add("primary-button");
         messageLabel = new Label();
         loginButton.setOnAction(event -> handleLogin());
         passwordField.setOnAction(event -> handleLogin());

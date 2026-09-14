@@ -153,3 +153,97 @@
 .table-row-cell:hover {
     -fx-background-color: #f7fbfa;
 }
+
+.table-view .table-row-cell:selected {
+    -fx-background-color: #dbeafe;
+}
+
+.table-view .table-row-cell:selected .table-cell {
+    -fx-text-fill: #111827;
+}
+
+.table-view .table-row-cell:selected .text {
+    -fx-fill: #111827;
+}
+
+/* =========================
+   ALL BUTTONS
+   ========================= */
+
+.button {
+    -fx-background-color: #edf2f7;
+    -fx-text-fill: #172b4d;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-padding: 10 20;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.button:hover {
+    -fx-background-color: #e2e8f0;
+}
+
+.button:pressed {
+    -fx-background-color: #d7dee8;
+}
+
+/* =========================
+   PRIMARY BUTTON
+   ========================= */
+
+.primary-button {
+    -fx-background-color: #0caf9a;
+    -fx-text-fill: white;
+}
+
+.primary-button:hover {
+    -fx-background-color: #099985;
+}
+
+.primary-button:pressed {
+    -fx-background-color: #078874;
+}
+
+/* =========================
+   SECONDARY BUTTON
+   ========================= */
+
+.secondary-button {
+    -fx-background-color: #edf2f7;
+    -fx-text-fill: #172b4d;
+}
+
+.secondary-button:hover {
+    -fx-background-color: #e2e8f0;
+}
+
+.secondary-button:pressed {
+    -fx-background-color: #d7dee8;
+}
+
+/* =========================
+   DANGER BUTTON
+   ========================= */
+
+.danger-button {
+    -fx-background-color: #fee2e2;
+    -fx-text-fill: #b91c1c;
+}
+
+.danger-button:hover {
+    -fx-background-color: #fecaca;
+}
+
+.danger-button:pressed {
+    -fx-background-color: #fca5a5;
+}
+
+/* =========================
+   FOCUS
+   ========================= */
+
+.button:focused {
+    -fx-border-color: #0caf9a;
+    -fx-border-width: 1px;
+}
