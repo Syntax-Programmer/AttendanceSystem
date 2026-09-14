@@ -6,11 +6,13 @@ import com.school.attendance.service.AttendanceService;
 import com.school.attendance.service.StudentService;
 import java.time.LocalDate;
 import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 
 public class Dashboard extends BorderPane {
 
@@ -23,6 +25,7 @@ public class Dashboard extends BorderPane {
     private Button reportsButton;
     private Button facultyButton;
     private Button settingsButton;
+    private Button logoutButton;
 
     public Dashboard() {
         StudentRepository studentRepository = new StudentRepository();
@@ -54,6 +57,8 @@ public class Dashboard extends BorderPane {
         reportsButton = createNavButton("Reports");
         facultyButton = createNavButton("Faculty");
         settingsButton = createNavButton("Settings");
+        logoutButton = createNavButton("Logout");
+        logoutButton.getStyleClass().add("logout-button");
 
         // Dashboard is active initially
         setActiveButton(dashboardButton);
@@ -82,6 +87,7 @@ public class Dashboard extends BorderPane {
             showPlaceholder("Settings");
             setActiveButton(settingsButton);
         });
+        logoutButton.setOnAction(event -> logout());
         // Navigation container
         VBox navigation = new VBox(
             6,
@@ -94,7 +100,7 @@ public class Dashboard extends BorderPane {
         // Push Settings to bottom
         VBox spacer = new VBox();
         VBox.setVgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
-        sidebar.getChildren().addAll(brandBox, navigation, spacer, settingsButton);
+        sidebar.getChildren().addAll(brandBox, navigation, spacer, settingsButton, logoutButton);
 
         return sidebar;
     }
@@ -265,5 +271,14 @@ public class Dashboard extends BorderPane {
 
         content.getChildren().add(title);
         setCenter(content);
+    }
+
+    private void logout() {
+        LoginScreen loginScreen = new LoginScreen();
+        Scene scene = new Scene(loginScreen, 900, 600);
+        scene.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
+        Stage stage = (Stage) getScene().getWindow();
+        stage.setTitle("School Attendance System");
+        stage.setScene(scene);
     }
 }

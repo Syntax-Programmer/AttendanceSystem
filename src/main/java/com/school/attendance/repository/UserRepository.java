@@ -113,4 +113,30 @@ public class UserRepository {
             statement.executeUpdate();
         }
     }
+
+    public Optional<User> findById(int userId) throws SQLException {
+        String sql = """
+        SELECT user_id, username, password_hash, role FROM users
+        WHERE user_id = ?
+        """;
+
+        try (
+            Connection connection = DatabaseConnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)
+        ) {
+            statement.setInt(1, userId);
+            try (ResultSet result = statement.executeQuery()) {
+                if (result.next()) {
+                    User user = new User();
+                    user.setUserId(result.getInt("user_id"));
+                    user.setUsername(result.getString("username"));
+                    user.setPasswordHash(result.getString("password_hash"));
+                    user.setRole(result.getString("role"));
+                    return Optional.of(user);
+                }
+            }
+        }
+
+        return Optional.empty();
+    }
 }
