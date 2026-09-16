@@ -8,6 +8,7 @@ import com.school.attendance.service.FacultyAssignmentService;
 import java.util.List;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -200,9 +201,13 @@ public class FacultyDashboard extends BorderPane {
     }
 
     private void openClass(FacultyAssignment assignment) {
-        System.out.println(
-            "Opening Class " + assignment.getClassNumber() + "-" + assignment.getSection()
-        );
+        FacultyClassScreen classScreen = new FacultyClassScreen(user, assignment);
+        Scene scene = new Scene(classScreen, 1000, 700);
+        scene.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
+        javafx.stage.Stage stage = (javafx.stage.Stage) getScene().getWindow();
+
+        stage.setTitle("Class " + assignment.getClassNumber() + " - " + assignment.getSection());
+        stage.setScene(scene);
     }
 
     private void logout() {

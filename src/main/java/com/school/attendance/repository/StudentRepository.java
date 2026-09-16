@@ -124,4 +124,47 @@ public class StudentRepository {
             return result.getLong(1);
         }
     }
+
+    public List<Student> findByClassAndSection(int classNumber, String section)
+        throws SQLException {
+        String sql = """
+        SELECT
+            roll_no, class_number, section, name, date_of_birth, gender,
+            parent_name, parent_phone, address
+        FROM students
+        WHERE class_number = ? AND section = ?
+        ORDER BY roll_no
+        """;
+
+        List<Student> students = new ArrayList<>();
+
+        try (
+            Connection connection = DatabaseConnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)
+        ) {
+            statement.setInt(1, classNumber);
+            statement.setString(2, section);
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    Student student = new Student();
+                    student.setRollNo(result.getInt("roll_no"));
+                    student.setClassNumber(result.getInt("class_number"));
+                    student.setSection(result.getString("section"));
+                    student.setName(result.getString("name"));
+                    student.setDateOfBirth(
+                        result.getDate("date_of_birth") != null
+                            ? result.getDate("date_of_birth").toLocalDate()
+                            : null
+                    );
+                    student.setGender(result.getString("gender"));
+                    student.setParentName(result.getString("parent_name"));
+                    student.setParentPhone(result.getString("parent_phone"));
+                    student.setAddress(result.getString("address"));
+                    students.add(student);
+                }
+            }
+        }
+
+        return students;
+    }
 }

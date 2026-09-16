@@ -53,4 +53,9 @@ public class StudentService {
     public long getStudentCount() throws SQLException {
         return studentRepository.countStudents();
     }
+
+    public List<Student> getStudentsByClassAndSection(int classNumber, String section)
+        throws SQLException {
+        return studentRepository.findByClassAndSection(classNumber, section);
+    }
 }
