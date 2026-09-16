@@ -48,7 +48,7 @@ public class FacultyClassScreen extends BorderPane {
         TableColumn<Student, String> genderColumn = new TableColumn<>("Gender");
         genderColumn.setCellValueFactory(new PropertyValueFactory<>("gender"));
         studentTable.getColumns().addAll(rollColumn, nameColumn, sectionColumn, genderColumn);
-        studentTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        studentTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
 
         return studentTable;
     }

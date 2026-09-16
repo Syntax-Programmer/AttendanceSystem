@@ -56,7 +56,7 @@ public class Dashboard extends BorderPane {
         studentsButton = createNavButton("Students");
         reportsButton = createNavButton("Reports");
         facultyButton = createNavButton("Faculty");
-        settingsButton = createNavButton("Settings");
+        settingsButton = createNavButton("QR Codes");
         logoutButton = createNavButton("Logout");
         logoutButton.getStyleClass().add("logout-button");
 
@@ -84,7 +84,7 @@ public class Dashboard extends BorderPane {
             setActiveButton(facultyButton);
         });
         settingsButton.setOnAction(event -> {
-            showPlaceholder("Settings");
+            setCenter(new QrCodeScreen());
             setActiveButton(settingsButton);
         });
         logoutButton.setOnAction(event -> logout());
@@ -97,7 +97,7 @@ public class Dashboard extends BorderPane {
             reportsButton,
             facultyButton
         );
-        // Push Settings to bottom
+        // Push QR Codes & Logout to bottom
         VBox spacer = new VBox();
         VBox.setVgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
         sidebar.getChildren().addAll(brandBox, navigation, spacer, settingsButton, logoutButton);
@@ -251,7 +251,7 @@ public class Dashboard extends BorderPane {
             setActiveButton(studentsButton);
         });
         reports.setOnAction(event -> {
-            showPlaceholder("Attendance Reports");
+            setCenter(new Reports());
             setActiveButton(reportsButton);
         });
         quickActions.getChildren().addAll(actionsTitle, markAttendance, findStudent, reports);

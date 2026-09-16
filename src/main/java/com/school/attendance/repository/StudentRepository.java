@@ -1,6 +1,7 @@
 package com.school.attendance.repository;
 
 import com.school.attendance.database.DatabaseConnection;
+import com.school.attendance.model.FacultyAssignment;
 import com.school.attendance.model.Student;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -167,4 +168,63 @@ public class StudentRepository {
 
         return students;
     }
+
+    /**
+     * Returns all students belonging to ANY of the given class/section assignments.
+     * Used for faculty-restricted student views.
+     */
+    public List<Student> findByAssignedClasses(List<FacultyAssignment> assignments)
+        throws SQLException {
+        if (assignments == null || assignments.isEmpty()) {
+            return new ArrayList<>();
+        }
+        // Build parameterized placeholders: (class_number=? AND section=?) OR ...
+        StringBuilder whereClause = new StringBuilder();
+        for (int i = 0; i < assignments.size(); i++) {
+            if (i > 0) whereClause.append(" OR ");
+            whereClause.append("(s.class_number = ? AND s.section = ?)");
+        }
+        String sql = """
+            SELECT
+                s.roll_no, s.class_number, s.section, s.name, s.date_of_birth, s.gender,
+                s.parent_name, s.parent_phone, s.address
+            FROM students s
+            WHERE """ + whereClause + """
+
+            ORDER BY s.class_number, s.section, s.roll_no
+            """;
+
+        List<Student> students = new ArrayList<>();
+        try (
+            Connection connection = DatabaseConnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)
+        ) {
+            int idx = 1;
+            for (FacultyAssignment assignment : assignments) {
+                statement.setInt(idx++, assignment.getClassNumber());
+                statement.setString(idx++, assignment.getSection());
+            }
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    Student student = new Student();
+                    student.setRollNo(result.getInt("roll_no"));
+                    student.setClassNumber(result.getInt("class_number"));
+                    student.setSection(result.getString("section"));
+                    student.setName(result.getString("name"));
+                    student.setDateOfBirth(
+                        result.getDate("date_of_birth") != null
+                            ? result.getDate("date_of_birth").toLocalDate()
+                            : null
+                    );
+                    student.setGender(result.getString("gender"));
+                    student.setParentName(result.getString("parent_name"));
+                    student.setParentPhone(result.getString("parent_phone"));
+                    student.setAddress(result.getString("address"));
+                    students.add(student);
+                }
+            }
+        }
+        return students;
+    }
 }
+

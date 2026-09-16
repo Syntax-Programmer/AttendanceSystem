@@ -219,4 +219,89 @@ public class AttendanceRepository {
 
         return records;
     }
+
+    /**
+     * Updates an existing attendance record. Used when re-marking attendance.
+     */
+    public void update(Attendance attendance) throws SQLException {
+        String sql = """
+        UPDATE attendance SET status = ?
+        WHERE roll_no = ? AND attendance_date = ?
+        """;
+        try (
+            Connection connection = DatabaseConnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)
+        ) {
+            statement.setString(1, attendance.getStatus().name());
+            statement.setInt(2, attendance.getRollNo());
+            statement.setObject(3, attendance.getAttendanceDate());
+            statement.executeUpdate();
+        }
+    }
+
+    /**
+     * Returns report rows restricted to the given list of class/section assignments.
+     * Builds a dynamic WHERE clause so faculty can only see their assigned classes.
+     */
+    public List<Object[]> findReportByAssignedClasses(
+        LocalDate date,
+        List<com.school.attendance.model.FacultyAssignment> assignments,
+        Integer classNumber,
+        String section
+    ) throws SQLException {
+        if (assignments == null || assignments.isEmpty()) {
+            return new ArrayList<>();
+        }
+        // Build assignment filter: (s.class_number=? AND s.section=?) OR ...
+        StringBuilder assignmentWhere = new StringBuilder("(");
+        for (int i = 0; i < assignments.size(); i++) {
+            if (i > 0) assignmentWhere.append(" OR ");
+            assignmentWhere.append("(s.class_number = ? AND s.section = ?)");
+        }
+        assignmentWhere.append(")");
+
+        String sql = """
+            SELECT
+                s.roll_no, s.name, s.class_number, s.section, a.status, a.marked_at
+            FROM students s
+            LEFT JOIN attendance a
+                ON s.roll_no = a.roll_no AND a.attendance_date = ?
+            WHERE """ + assignmentWhere + """
+             AND (? IS NULL OR s.class_number = ?) AND (? IS NULL OR s.section = ?)
+            ORDER BY s.class_number, s.section, s.roll_no
+            """;
+
+        List<Object[]> records = new ArrayList<>();
+        try (
+            Connection connection = DatabaseConnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)
+        ) {
+            int idx = 1;
+            statement.setObject(idx++, date);
+            for (com.school.attendance.model.FacultyAssignment assignment : assignments) {
+                statement.setInt(idx++, assignment.getClassNumber());
+                statement.setString(idx++, assignment.getSection());
+            }
+            // Class filter
+            statement.setObject(idx, classNumber); idx++;
+            statement.setObject(idx, classNumber); idx++;
+            // Section filter
+            statement.setString(idx, section); idx++;
+            statement.setString(idx, section);
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    records.add(new Object[] {
+                        result.getInt("roll_no"),
+                        result.getString("name"),
+                        result.getInt("class_number"),
+                        result.getString("section"),
+                        result.getString("status"),
+                        result.getTimestamp("marked_at"),
+                    });
+                }
+            }
+        }
+        return records;
+    }
 }
+

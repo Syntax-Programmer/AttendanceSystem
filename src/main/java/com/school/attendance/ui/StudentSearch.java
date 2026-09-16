@@ -145,7 +145,7 @@ public class StudentSearch extends VBox {
         studentTable
             .getColumns()
             .addAll(rollColumn, nameColumn, classColumn, sectionColumn, actionColumn);
-        studentTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        studentTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
     }
 
     private void loadStudents() {

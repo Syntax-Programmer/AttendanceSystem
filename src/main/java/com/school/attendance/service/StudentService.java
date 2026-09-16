@@ -1,5 +1,6 @@
 package com.school.attendance.service;
 
+import com.school.attendance.model.FacultyAssignment;
 import com.school.attendance.model.Student;
 import com.school.attendance.repository.StudentRepository;
 import java.sql.SQLException;
@@ -58,4 +59,10 @@ public class StudentService {
         throws SQLException {
         return studentRepository.findByClassAndSection(classNumber, section);
     }
+
+    public List<Student> getStudentsByAssignedClasses(List<FacultyAssignment> assignments)
+        throws SQLException {
+        return studentRepository.findByAssignedClasses(assignments);
+    }
 }
+

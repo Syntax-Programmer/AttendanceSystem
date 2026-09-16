@@ -8,7 +8,6 @@ import com.school.attendance.service.FacultyAssignmentService;
 import java.util.List;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -86,21 +85,15 @@ public class FacultyDashboard extends BorderPane {
 
         attendanceButton.setOnAction(event -> {
             setActiveButton(attendanceButton, navigationButtons);
-            Label label = new Label("Attendance");
-            label.getStyleClass().add("page-title");
-            setCenter(label);
+            setCenter(new FacultyAttendanceScreen(user));
         });
         studentsButton.setOnAction(event -> {
             setActiveButton(studentsButton, navigationButtons);
-            Label label = new Label("Students");
-            label.getStyleClass().add("page-title");
-            setCenter(label);
+            setCenter(new FacultyStudentsScreen(user));
         });
         reportsButton.setOnAction(event -> {
             setActiveButton(reportsButton, navigationButtons);
-            Label label = new Label("Reports");
-            label.getStyleClass().add("page-title");
-            setCenter(label);
+            setCenter(new FacultyReportsScreen(user));
         });
 
         VBox navigation = new VBox(

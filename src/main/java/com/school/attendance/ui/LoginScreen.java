@@ -80,6 +80,9 @@ public class LoginScreen extends VBox {
                 } else if (user.getRole().equals("FACULTY")) {
                     FacultyDashboard dashboard = new FacultyDashboard(user);
                     Scene scene = new Scene(dashboard, 1200, 750);
+                    scene.getStylesheets().add(
+                        getClass().getResource("/css/app.css").toExternalForm()
+                    );
                     stage.setTitle("Faculty - School Attendance System");
                     stage.setScene(scene);
                 }
