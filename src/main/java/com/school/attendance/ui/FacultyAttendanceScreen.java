@@ -9,16 +9,20 @@ import com.school.attendance.repository.FacultyAssignmentRepository;
 import com.school.attendance.repository.StudentRepository;
 import com.school.attendance.repository.UserRepository;
 import com.school.attendance.service.AttendanceService;
+import com.school.attendance.service.EmailService;
 import com.school.attendance.service.FacultyAssignmentService;
 import com.school.attendance.service.StudentService;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.logging.Logger;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
+
 
 /**
  * Faculty Attendance screen.
@@ -27,10 +31,13 @@ import javafx.scene.layout.*;
  */
 public class FacultyAttendanceScreen extends VBox {
 
+    private static final Logger LOGGER = Logger.getLogger(FacultyAttendanceScreen.class.getName());
+
     private final User user;
     private final AttendanceService attendanceService;
     private final FacultyAssignmentService assignmentService;
     private final StudentService studentService;
+    private final EmailService emailService;
 
     private final ComboBox<FacultyAssignment> classSelector = new ComboBox<>();
     private final DatePicker datePicker = new DatePicker(LocalDate.now());
@@ -49,6 +56,7 @@ public class FacultyAttendanceScreen extends VBox {
         this.attendanceService = new AttendanceService(studentRepository, attendanceRepository);
         this.assignmentService = new FacultyAssignmentService(assignmentRepository, userRepository);
         this.studentService = new StudentService(studentRepository);
+        this.emailService = new EmailService();
 
         getStyleClass().add("content-area");
         setSpacing(20);
@@ -211,11 +219,48 @@ public class FacultyAttendanceScreen extends VBox {
 
         try {
             attendanceService.markOrUpdateAttendance(student.getRollNo(), date, status);
-            showStatus("Marked " + student.getName() + " as " + status.name() +
-                " on " + date + ".");
+
+            // Send parent email notification (non-blocking, never fails attendance)
+            String emailNote = sendEmailNotification(student, status, date);
+            showStatus("Marked " + student.getName() + " as " + status.name()
+                + " on " + date + "." + emailNote);
+
         } catch (Exception e) {
             e.printStackTrace();
             showStatus("Error marking attendance: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Attempts to send a parent email notification. Returns a short status string for the UI.
+     * Attendance has already been saved before this method is called.
+     * Any SMTP/network failure is caught and logged — never propagated.
+     */
+    private String sendEmailNotification(Student student, AttendanceStatus status, LocalDate date) {
+        String parentEmail = student.getParentEmail();
+        if (parentEmail == null || parentEmail.isBlank()) {
+            LOGGER.info("[FacultyAttendanceScreen] No parent email for roll " + student.getRollNo());
+            return " (No parent email.)";
+        }
+        if (!emailService.isConfigured()) {
+            return " (Email not configured.)";
+        }
+        try {
+            emailService.sendAttendanceNotification(
+                parentEmail,
+                student.getName(),
+                student.getRollNo(),
+                student.getClassNumber(),
+                student.getSection(),
+                status.name(),
+                date,
+                LocalDateTime.now()
+            );
+            return " Email sent.";
+        } catch (Exception e) {
+            LOGGER.warning("[FacultyAttendanceScreen] Email failed for roll "
+                + student.getRollNo() + ": " + e.getMessage());
+            return " (Email failed — attendance saved.)";
         }
     }
 
@@ -223,3 +268,4 @@ public class FacultyAttendanceScreen extends VBox {
         statusLabel.setText(message);
     }
 }
+

@@ -13,6 +13,7 @@ public class Student {
     private String parentName;
     private String parentPhone;
     private String address;
+    private String parentEmail;
 
     public Student() {}
 
@@ -36,6 +37,22 @@ public class Student {
         this.parentName = parentName;
         this.parentPhone = parentPhone;
         this.address = address;
+    }
+
+    public Student(
+        int rollNo,
+        int classNumber,
+        String section,
+        String name,
+        LocalDate dateOfBirth,
+        String gender,
+        String parentName,
+        String parentPhone,
+        String address,
+        String parentEmail
+    ) {
+        this(rollNo, classNumber, section, name, dateOfBirth, gender, parentName, parentPhone, address);
+        this.parentEmail = parentEmail;
     }
 
     public int getRollNo() {
@@ -108,5 +125,13 @@ public class Student {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getParentEmail() {
+        return parentEmail;
+    }
+
+    public void setParentEmail(String parentEmail) {
+        this.parentEmail = parentEmail;
     }
 }

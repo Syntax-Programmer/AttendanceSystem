@@ -76,4 +76,18 @@ public class AuthService {
         String passwordHash = BCrypt.hashpw(newPassword, BCrypt.gensalt());
         userRepository.updatePassword(userId, passwordHash);
     }
+
+    public void resetUsername(int userId, String newUsername) throws SQLException {
+        if (newUsername == null || newUsername.isBlank()) {
+            throw new IllegalArgumentException("Username cannot be empty.");
+        }
+        // Check uniqueness
+        Optional<User> existing = userRepository.findByUsername(newUsername);
+        if (existing.isPresent() && existing.get().getUserId() != userId) {
+            throw new IllegalArgumentException(
+                "Username '" + newUsername + "' is already in use by another account."
+            );
+        }
+        userRepository.updateUsername(userId, newUsername);
+    }
 }

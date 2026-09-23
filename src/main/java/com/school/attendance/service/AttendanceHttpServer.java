@@ -1,6 +1,7 @@
 package com.school.attendance.service;
 
 import com.school.attendance.model.AttendanceStatus;
+import com.school.attendance.model.Student;
 import com.school.attendance.repository.AttendanceRepository;
 import com.school.attendance.repository.StudentRepository;
 import com.sun.net.httpserver.HttpExchange;
@@ -11,7 +12,10 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.concurrent.Executors;
+import java.util.logging.Logger;
 
 /**
  * Lightweight HTTP server that allows phones to submit QR scan results.
@@ -20,6 +24,7 @@ import java.util.concurrent.Executors;
  *   1. Faculty displays QR code for a student (showing roll number).
  *   2. Phone user scans QR code and is directed to http://<server-ip>:8765/mark?roll=<rollNo>
  *   3. This server marks the student present and returns a JSON response.
+ *   4. After attendance is saved, sends parent email notification (non-blocking).
  *
  * Endpoints:
  *   GET  /mark?roll=<rollNo>[&status=PRESENT|ABSENT|LATE]
@@ -36,13 +41,18 @@ public class AttendanceHttpServer {
 
     public static final int PORT = 8765;
 
+    private static final Logger LOGGER = Logger.getLogger(AttendanceHttpServer.class.getName());
+
     private HttpServer server;
     private final AttendanceService attendanceService;
+    private final StudentRepository studentRepository;
+    private final EmailService emailService;
 
     public AttendanceHttpServer() {
-        StudentRepository studentRepository = new StudentRepository();
+        this.studentRepository = new StudentRepository();
         AttendanceRepository attendanceRepository = new AttendanceRepository();
         this.attendanceService = new AttendanceService(studentRepository, attendanceRepository);
+        this.emailService = new EmailService();
     }
 
     public void startServer() throws IOException {
@@ -51,13 +61,13 @@ public class AttendanceHttpServer {
         server.createContext("/ping", this::handlePing);
         server.setExecutor(Executors.newFixedThreadPool(4));
         server.start();
-        System.out.println("[AttendanceHttpServer] Started on port " + PORT);
+        LOGGER.info("[AttendanceHttpServer] Started on port " + PORT);
     }
 
     public void stopServer() {
         if (server != null) {
             server.stop(0);
-            System.out.println("[AttendanceHttpServer] Stopped.");
+            LOGGER.info("[AttendanceHttpServer] Stopped.");
         }
     }
 
@@ -111,27 +121,63 @@ public class AttendanceHttpServer {
 
         try {
             // Check student exists
-            var student = attendanceService.findStudent(rollNo);
-            if (student.isEmpty()) {
+            Optional<Student> studentOpt = attendanceService.findStudent(rollNo);
+            if (studentOpt.isEmpty()) {
                 sendJson(exchange, 404,
                     "{\"success\":false,\"error\":\"Student with roll number " + rollNo + " not found\"}");
                 return;
             }
-            String studentName = student.get().getName();
+            Student student = studentOpt.get();
+            String studentName = student.getName();
 
             // Mark or update attendance for today
             attendanceService.markOrUpdateAttendance(rollNo, LocalDate.now(), status);
 
+            // Send parent email notification (non-blocking)
+            String emailNote = sendEmailNotification(student, status);
+
             String msg = "Attendance marked: " + studentName + " (" + rollNo + ") -> " + status.name();
             sendJson(exchange, 200,
-                "{\"success\":true,\"message\":\"" + escapeJson(msg) + "\"," +
+                "{\"success\":true,\"message\":\"" + escapeJson(msg + emailNote) + "\"," +
                 "\"student\":\"" + escapeJson(studentName) + "\"," +
                 "\"roll\":" + rollNo + "," +
                 "\"status\":\"" + status.name() + "\"}");
+
         } catch (SQLException e) {
             e.printStackTrace();
             sendJson(exchange, 500,
                 "{\"success\":false,\"error\":\"Database error: " + escapeJson(e.getMessage()) + "\"}");
+        }
+    }
+
+    /**
+     * Sends parent email notification. Returns short note for response message.
+     * Never throws — any failure is logged.
+     */
+    private String sendEmailNotification(Student student, AttendanceStatus status) {
+        String parentEmail = student.getParentEmail();
+        if (parentEmail == null || parentEmail.isBlank()) {
+            return " (No parent email)";
+        }
+        if (!emailService.isConfigured()) {
+            return " (Email not configured)";
+        }
+        try {
+            emailService.sendAttendanceNotification(
+                parentEmail,
+                student.getName(),
+                student.getRollNo(),
+                student.getClassNumber(),
+                student.getSection(),
+                status.name(),
+                LocalDate.now(),
+                LocalDateTime.now()
+            );
+            return " Email sent";
+        } catch (Exception e) {
+            LOGGER.warning("[AttendanceHttpServer] Email failed for roll "
+                + student.getRollNo() + ": " + e.getMessage());
+            return " (Email failed)";
         }
     }
 

@@ -6,15 +6,14 @@ import com.school.attendance.service.StudentService;
 import java.util.List;
 import java.util.Optional;
 import javafx.collections.FXCollections;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.geometry.Insets;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
+/**
+ * Student Directory screen.
+ * Shows all students, supports search by roll number, view profile, and add new student.
+ */
 public class StudentSearch extends VBox {
 
     private final StudentService studentService;
@@ -38,7 +37,6 @@ public class StudentSearch extends VBox {
 
         VBox header = new VBox(5, title, subtitle);
         VBox searchCard = createSearchCard();
-
         VBox tableCard = createTableCard();
         getChildren().addAll(header, searchCard, tableCard);
     }
@@ -49,6 +47,7 @@ public class StudentSearch extends VBox {
 
         Label label = new Label("SEARCH STUDENTS");
         label.getStyleClass().add("stat-title");
+
         searchField = new TextField();
         searchField.setPromptText("Enter roll number...");
         searchField.setPrefHeight(42);
@@ -60,12 +59,18 @@ public class StudentSearch extends VBox {
         Button showAllButton = new Button("Show All");
         showAllButton.getStyleClass().add("secondary-button");
         showAllButton.setPrefHeight(42);
-        searchButton.setOnAction(event -> searchStudent());
-        showAllButton.setOnAction(event -> loadStudents());
-        searchField.setOnAction(event -> searchStudent());
 
-        HBox row = new HBox(10, searchField, searchButton, showAllButton);
-        HBox.setHgrow(searchField, javafx.scene.layout.Priority.ALWAYS);
+        Button addStudentButton = new Button("+ Add Student");
+        addStudentButton.getStyleClass().add("primary-button");
+        addStudentButton.setPrefHeight(42);
+
+        searchButton.setOnAction(e -> searchStudent());
+        showAllButton.setOnAction(e -> loadStudents());
+        searchField.setOnAction(e -> searchStudent());
+        addStudentButton.setOnAction(e -> showAddStudentDialog());
+
+        HBox row = new HBox(10, searchField, searchButton, showAllButton, addStudentButton);
+        HBox.setHgrow(searchField, Priority.ALWAYS);
         card.getChildren().addAll(label, row);
 
         return card;
@@ -80,10 +85,9 @@ public class StudentSearch extends VBox {
         createTableColumns();
 
         studentTable.setPlaceholder(new Label("No students found."));
-
-        VBox.setVgrow(studentTable, javafx.scene.layout.Priority.ALWAYS);
+        VBox.setVgrow(studentTable, Priority.ALWAYS);
         card.getChildren().addAll(title, studentTable);
-        VBox.setVgrow(card, javafx.scene.layout.Priority.ALWAYS);
+        VBox.setVgrow(card, Priority.ALWAYS);
 
         return card;
     }
@@ -91,9 +95,7 @@ public class StudentSearch extends VBox {
     private void createTableColumns() {
         TableColumn<Student, String> rollColumn = new TableColumn<>("Roll No.");
         rollColumn.setCellValueFactory(data ->
-            new javafx.beans.property.SimpleStringProperty(
-                String.valueOf(data.getValue().getRollNo())
-            )
+            new javafx.beans.property.SimpleStringProperty(String.valueOf(data.getValue().getRollNo()))
         );
 
         TableColumn<Student, String> nameColumn = new TableColumn<>("Name");
@@ -103,48 +105,44 @@ public class StudentSearch extends VBox {
 
         TableColumn<Student, String> classColumn = new TableColumn<>("Class");
         classColumn.setCellValueFactory(data ->
-            new javafx.beans.property.SimpleStringProperty(
-                String.valueOf(data.getValue().getClassNumber())
-            )
+            new javafx.beans.property.SimpleStringProperty(String.valueOf(data.getValue().getClassNumber()))
         );
 
         TableColumn<Student, String> sectionColumn = new TableColumn<>("Section");
         sectionColumn.setCellValueFactory(data ->
             new javafx.beans.property.SimpleStringProperty(data.getValue().getSection())
         );
+
+        TableColumn<Student, String> parentEmailColumn = new TableColumn<>("Parent Email");
+        parentEmailColumn.setCellValueFactory(data -> {
+            String email = data.getValue().getParentEmail();
+            return new javafx.beans.property.SimpleStringProperty(email != null ? email : "—");
+        });
+
         TableColumn<Student, Void> actionColumn = new TableColumn<>("Action");
-
-        actionColumn.setCellFactory(column ->
-            new TableCell<>() {
-                private final Button viewButton = new Button("View Profile");
-
-                {
-                    viewButton.getStyleClass().add("secondary-button");
-                    viewButton.setOnAction(event -> {
-                        Student student = getTableView().getItems().get(getIndex());
-                        openProfile(student);
-                    });
-                }
-
-                @Override
-                protected void updateItem(Void item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (empty) {
-                        setGraphic(null);
-                    } else {
-                        setGraphic(viewButton);
-                    }
-                }
+        actionColumn.setCellFactory(column -> new TableCell<>() {
+            private final Button viewButton = new Button("View Profile");
+            {
+                viewButton.getStyleClass().add("secondary-button");
+                viewButton.setOnAction(e -> {
+                    Student student = getTableView().getItems().get(getIndex());
+                    openProfile(student);
+                });
             }
-        );
-        rollColumn.setPrefWidth(100);
-        nameColumn.setPrefWidth(250);
-        classColumn.setPrefWidth(100);
-        sectionColumn.setPrefWidth(100);
-        actionColumn.setPrefWidth(150);
-        studentTable
-            .getColumns()
-            .addAll(rollColumn, nameColumn, classColumn, sectionColumn, actionColumn);
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : viewButton);
+            }
+        });
+
+        rollColumn.setPrefWidth(80);
+        nameColumn.setPrefWidth(200);
+        classColumn.setPrefWidth(70);
+        sectionColumn.setPrefWidth(70);
+        parentEmailColumn.setPrefWidth(180);
+        actionColumn.setPrefWidth(120);
+        studentTable.getColumns().addAll(rollColumn, nameColumn, classColumn, sectionColumn, parentEmailColumn, actionColumn);
         studentTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
     }
 
@@ -160,7 +158,6 @@ public class StudentSearch extends VBox {
 
     private void searchStudent() {
         String text = searchField.getText().trim();
-
         if (text.isEmpty()) {
             loadStudents();
             return;
@@ -178,6 +175,120 @@ public class StudentSearch extends VBox {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void showAddStudentDialog() {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Add New Student");
+        dialog.setHeaderText("Register a new student");
+        ButtonType saveButton = new ButtonType("Add Student", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButton, ButtonType.CANCEL);
+        dialog.getDialogPane().setPrefWidth(460);
+
+        TextField rollField = new TextField();
+        rollField.setPromptText("Roll Number *");
+
+        TextField nameField = new TextField();
+        nameField.setPromptText("Full Name *");
+
+        Spinner<Integer> classSpinner = new Spinner<>(1, 12, 1);
+        classSpinner.setEditable(true);
+
+        ComboBox<String> sectionBox = new ComboBox<>();
+        sectionBox.getItems().addAll("A", "B", "C", "D", "E", "F");
+        sectionBox.setValue("A");
+
+        DatePicker dobPicker = new DatePicker();
+
+        ComboBox<String> genderBox = new ComboBox<>();
+        genderBox.getItems().addAll("Male", "Female", "Other", "Prefer not to say");
+
+        TextField parentNameField = new TextField();
+        parentNameField.setPromptText("Parent Name");
+
+        TextField parentPhoneField = new TextField();
+        parentPhoneField.setPromptText("Parent Phone");
+
+        TextField parentEmailField = new TextField();
+        parentEmailField.setPromptText("Parent Email");
+
+        TextArea addressArea = new TextArea();
+        addressArea.setPromptText("Address");
+        addressArea.setPrefRowCount(2);
+
+        Label errorLabel = new Label();
+        errorLabel.setStyle("-fx-text-fill: #b91c1c; -fx-font-size: 12px;");
+
+        GridPane grid = new GridPane();
+        grid.setHgap(12);
+        grid.setVgap(8);
+        grid.setPadding(new Insets(15));
+
+        int r = 0;
+        grid.add(new Label("Roll Number *"), 0, r); grid.add(rollField, 1, r++);
+        grid.add(new Label("Full Name *"), 0, r); grid.add(nameField, 1, r++);
+        grid.add(new Label("Class *"), 0, r); grid.add(classSpinner, 1, r++);
+        grid.add(new Label("Section *"), 0, r); grid.add(sectionBox, 1, r++);
+        grid.add(new Label("Date of Birth"), 0, r); grid.add(dobPicker, 1, r++);
+        grid.add(new Label("Gender"), 0, r); grid.add(genderBox, 1, r++);
+        grid.add(new Label("Parent Name"), 0, r); grid.add(parentNameField, 1, r++);
+        grid.add(new Label("Parent Phone"), 0, r); grid.add(parentPhoneField, 1, r++);
+        grid.add(new Label("Parent Email"), 0, r); grid.add(parentEmailField, 1, r++);
+        grid.add(new Label("Address"), 0, r); grid.add(addressArea, 1, r++);
+        grid.add(errorLabel, 0, r, 2, 1);
+
+        ColumnConstraints col1 = new ColumnConstraints(120);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(col1, col2);
+
+        for (var node : new javafx.scene.Node[]{
+                rollField, nameField, parentNameField, parentPhoneField, parentEmailField,
+                addressArea, sectionBox, genderBox, dobPicker, classSpinner}) {
+            if (node instanceof Region reg) {
+                reg.setMaxWidth(Double.MAX_VALUE);
+                GridPane.setHgrow(reg, Priority.ALWAYS);
+            }
+        }
+
+        dialog.getDialogPane().setContent(new ScrollPane(grid) {{
+            setFitToWidth(true);
+            setPrefViewportHeight(420);
+        }});
+
+        dialog.setResultConverter(button -> {
+            if (button == saveButton) {
+                errorLabel.setText("");
+                try {
+                    int rollNo = Integer.parseInt(rollField.getText().trim());
+                    Student student = new Student();
+                    student.setRollNo(rollNo);
+                    student.setName(nameField.getText().trim());
+                    student.setClassNumber(classSpinner.getValue());
+                    student.setSection(sectionBox.getValue());
+                    student.setDateOfBirth(dobPicker.getValue());
+                    student.setGender(genderBox.getValue());
+                    student.setParentName(parentNameField.getText().trim());
+                    student.setParentPhone(parentPhoneField.getText().trim());
+                    student.setParentEmail(parentEmailField.getText().trim());
+                    student.setAddress(addressArea.getText().trim());
+                    studentService.addStudent(student);
+                    loadStudents();
+                } catch (NumberFormatException e) {
+                    errorLabel.setText("Roll number must be a valid integer.");
+                    return null;
+                } catch (IllegalArgumentException e) {
+                    errorLabel.setText(e.getMessage());
+                    return null;
+                } catch (Exception e) {
+                    errorLabel.setText("Error: " + e.getMessage());
+                    return null;
+                }
+            }
+            return button;
+        });
+
+        dialog.showAndWait();
     }
 
     private void openProfile(Student student) {
