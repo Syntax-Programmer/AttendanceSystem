@@ -25,7 +25,6 @@ public class Dashboard extends BorderPane {
     private Button reportsButton;
     private Button facultyButton;
     private Button barcodesButton;
-    private Button settingsButton;
     private Button logoutButton;
 
     public Dashboard() {
@@ -58,7 +57,6 @@ public class Dashboard extends BorderPane {
         reportsButton = createNavButton("Reports");
         facultyButton = createNavButton("Faculty");
         barcodesButton = createNavButton("Barcodes");
-        settingsButton = createNavButton("QR Codes");
         logoutButton = createNavButton("Logout");
         logoutButton.getStyleClass().add("logout-button");
 
@@ -89,10 +87,6 @@ public class Dashboard extends BorderPane {
             setCenter(new BulkBarcodeScreen());
             setActiveButton(barcodesButton);
         });
-        settingsButton.setOnAction(event -> {
-            setCenter(new QrCodeScreen());
-            setActiveButton(settingsButton);
-        });
         logoutButton.setOnAction(event -> logout());
         // Navigation container
         VBox navigation = new VBox(
@@ -104,10 +98,10 @@ public class Dashboard extends BorderPane {
             facultyButton,
             barcodesButton
         );
-        // Push QR Codes & Logout to bottom
+        // Push Logout to bottom
         VBox spacer = new VBox();
         VBox.setVgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
-        sidebar.getChildren().addAll(brandBox, navigation, spacer, settingsButton, logoutButton);
+        sidebar.getChildren().addAll(brandBox, navigation, spacer, logoutButton);
 
         return sidebar;
     }
@@ -127,7 +121,6 @@ public class Dashboard extends BorderPane {
         reportsButton.getStyleClass().remove("active");
         facultyButton.getStyleClass().remove("active");
         barcodesButton.getStyleClass().remove("active");
-        settingsButton.getStyleClass().remove("active");
 
         activeButton.getStyleClass().add("active");
     }

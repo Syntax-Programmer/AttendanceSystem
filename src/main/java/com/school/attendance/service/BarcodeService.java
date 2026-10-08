@@ -6,46 +6,15 @@ import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.oned.Code128Writer;
-import com.google.zxing.qrcode.QRCodeWriter;
-import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import java.awt.image.BufferedImage;
 import java.util.Map;
 
 /**
- * Generates QR codes and Code 128 barcodes encoding a student's roll number.
+ * Generates Code 128 barcodes encoding a student's roll number.
  * No barcode column is stored in the database; roll_no is the identifier.
- *
- * Code 128: preferred for traditional USB barcode scanners.
- * QR code: preferred for phone-camera scanning (can encode URLs).
+ * Code 128 is the standard for traditional USB barcode scanners.
  */
 public class BarcodeService {
-
-    /**
-     * Generates a QR code image for the given roll number (encodes roll number as string).
-     */
-    public BufferedImage generateQrCode(int rollNo, int size) throws WriterException {
-        return generateQrCodeFromString(String.valueOf(rollNo), size);
-    }
-
-    /**
-     * Generates a QR code image from an arbitrary string content.
-     * Used to encode full URLs (for phone-based scanning) or plain roll numbers.
-     */
-    public BufferedImage generateQrCodeFromString(String content, int size) throws WriterException {
-        QRCodeWriter writer = new QRCodeWriter();
-        Map<EncodeHintType, Object> hints = Map.of(
-            EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M,
-            EncodeHintType.MARGIN, 2
-        );
-        BitMatrix matrix = writer.encode(
-            content,
-            BarcodeFormat.QR_CODE,
-            size,
-            size,
-            hints
-        );
-        return MatrixToImageWriter.toBufferedImage(matrix);
-    }
 
     /**
      * Generates a Code 128 barcode image encoding the student's roll number.
@@ -78,7 +47,7 @@ public class BarcodeService {
     }
 
     /**
-     * Parses a scanned value (from QR or barcode scanner keyboard wedge) into a roll number.
+     * Parses a scanned value (from barcode scanner keyboard wedge) into a roll number.
      */
     public int parseRollNumber(String scannedValue) {
         if (scannedValue == null || scannedValue.isBlank()) {

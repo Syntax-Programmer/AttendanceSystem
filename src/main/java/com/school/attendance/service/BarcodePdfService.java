@@ -1,29 +1,25 @@
 package com.school.attendance.service;
 
-import com.google.zxing.WriterException;
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import com.school.attendance.model.Student;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.List;
 import javax.imageio.ImageIO;
-import java.io.ByteArrayOutputStream;
 
 /**
- * Generates a printable PDF containing Code128 barcodes and QR codes
+ * Generates a printable PDF containing Code 128 barcodes
  * for a list of students in a class/section.
  *
  * Layout: 2 students per row, each card showing:
  *   - Student name
- *   - Roll number
- *   - Class / Section
+ *   - Roll number and class/section
  *   - Code 128 barcode (for USB scanner)
- *   - QR code (for phone scanning)
  */
 public class BarcodePdfService {
 
@@ -34,68 +30,62 @@ public class BarcodePdfService {
      *
      * @param students     list of students to generate barcodes for
      * @param outputFile   destination file for the PDF
-     * @param serverBaseUrl  if non-null and non-blank, QR encodes the URL; else encodes roll number
-     * @throws Exception  if PDF generation or barcode generation fails
+     * @throws Exception   if PDF generation or barcode generation fails
      */
-    public void generatePdf(
-        List<Student> students,
-        File outputFile,
-        String serverBaseUrl
-    ) throws Exception {
+    public void generatePdf(List<Student> students, File outputFile) throws Exception {
         if (students == null || students.isEmpty()) {
             throw new IllegalArgumentException("No students provided.");
         }
 
         Document document = new Document(PageSize.A4, 36, 36, 36, 36);
         try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-            PdfWriter.getInstance(document, fos);
-            document.open();
+            try {
+                PdfWriter.getInstance(document, fos);
+                document.open();
 
-            // Title
-            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16);
-            Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
-            Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
+                // Title
+                Font titleFont  = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16);
+                Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
+                Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
 
-            Student first = students.get(0);
-            Paragraph title = new Paragraph(
-                "Barcode Cards — Class " + first.getClassNumber() + " / " + first.getSection(),
-                titleFont
-            );
-            title.setAlignment(Element.ALIGN_CENTER);
-            title.setSpacingAfter(16);
-            document.add(title);
+                Student first = students.get(0);
+                Paragraph title = new Paragraph(
+                    "Barcode Cards — Class " + first.getClassNumber() + " / " + first.getSection(),
+                    titleFont
+                );
+                title.setAlignment(Element.ALIGN_CENTER);
+                title.setSpacingAfter(16);
+                document.add(title);
 
-            // 2-column table for student cards
-            PdfPTable table = new PdfPTable(2);
-            table.setWidthPercentage(100);
-            table.setSpacingBefore(8);
-            table.getDefaultCell().setPadding(0);
-            table.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+                // 2-column table for student cards
+                PdfPTable table = new PdfPTable(2);
+                table.setWidthPercentage(100);
+                table.setSpacingBefore(8);
+                table.getDefaultCell().setPadding(0);
+                table.getDefaultCell().setBorder(Rectangle.NO_BORDER);
 
-            for (Student student : students) {
-                PdfPCell card = buildStudentCard(student, serverBaseUrl, headerFont, normalFont);
-                table.addCell(card);
+                for (Student student : students) {
+                    PdfPCell card = buildStudentCard(student, headerFont, normalFont);
+                    table.addCell(card);
+                }
+
+                // Fill last row if odd number of students
+                if (students.size() % 2 != 0) {
+                    PdfPCell empty = new PdfPCell();
+                    empty.setBorder(Rectangle.NO_BORDER);
+                    table.addCell(empty);
+                }
+
+                document.add(table);
+            } finally {
+                if (document.isOpen()) {
+                    document.close();
+                }
             }
-
-            // Fill last row if odd number of students
-            if (students.size() % 2 != 0) {
-                PdfPCell empty = new PdfPCell();
-                empty.setBorder(Rectangle.NO_BORDER);
-                table.addCell(empty);
-            }
-
-            document.add(table);
-        } finally {
-            if (document.isOpen()) document.close();
         }
     }
 
-    private PdfPCell buildStudentCard(
-        Student student,
-        String serverBaseUrl,
-        Font headerFont,
-        Font normalFont
-    ) {
+    private PdfPCell buildStudentCard(Student student, Font headerFont, Font normalFont) {
         PdfPTable inner = new PdfPTable(1);
         inner.setWidthPercentage(100);
 
@@ -122,29 +112,10 @@ public class BarcodePdfService {
             pdfBarcode.scaleToFit(230, 55);
             PdfPCell barcodeCell = new PdfPCell(pdfBarcode, true);
             barcodeCell.setBorder(Rectangle.NO_BORDER);
-            barcodeCell.setPaddingBottom(4);
+            barcodeCell.setPaddingBottom(8);
             inner.addCell(barcodeCell);
         } catch (Exception e) {
             PdfPCell err = new PdfPCell(new Phrase("Barcode error", normalFont));
-            err.setBorder(Rectangle.NO_BORDER);
-            inner.addCell(err);
-        }
-
-        // QR code
-        try {
-            String qrContent = (serverBaseUrl != null && !serverBaseUrl.isBlank())
-                ? serverBaseUrl + "/mark?roll=" + student.getRollNo()
-                : String.valueOf(student.getRollNo());
-            BufferedImage qrImg = barcodeService.generateQrCodeFromString(qrContent, 100);
-            Image pdfQr = toPdfImage(qrImg);
-            pdfQr.setAlignment(Image.ALIGN_CENTER);
-            pdfQr.scaleToFit(80, 80);
-            PdfPCell qrCell = new PdfPCell(pdfQr, true);
-            qrCell.setBorder(Rectangle.NO_BORDER);
-            qrCell.setPaddingBottom(8);
-            inner.addCell(qrCell);
-        } catch (Exception e) {
-            PdfPCell err = new PdfPCell(new Phrase("QR error", normalFont));
             err.setBorder(Rectangle.NO_BORDER);
             inner.addCell(err);
         }

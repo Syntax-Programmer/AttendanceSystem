@@ -7,14 +7,12 @@ import com.school.attendance.model.User;
 import com.school.attendance.repository.FacultyAssignmentRepository;
 import com.school.attendance.repository.StudentRepository;
 import com.school.attendance.repository.UserRepository;
-import com.school.attendance.service.AttendanceHttpServer;
 import com.school.attendance.service.BarcodePdfService;
 import com.school.attendance.service.BarcodeService;
 import com.school.attendance.service.FacultyAssignmentService;
 import com.school.attendance.service.StudentService;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.net.InetAddress;
 import java.util.List;
 import javafx.collections.FXCollections;
 import javafx.embed.swing.SwingFXUtils;
@@ -24,7 +22,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.layout.*;
-import javafx.stage.FileChooser;
+import javafx.stage.Window;
 
 /**
  * Bulk Barcode Generation screen for Management.
@@ -32,11 +30,9 @@ import javafx.stage.FileChooser;
  * Workflow:
  *  1. Select faculty from dropdown.
  *  2. Select from faculty's assigned class/section.
- *  3. View all students in that class with their barcodes (Code128 + QR).
- *  4. Click "Generate All Barcodes" to generate for all students.
+ *  3. Click "Load Students" to populate the list.
+ *  4. Click "Generate All Barcodes" to render Code 128 barcodes for all students.
  *  5. Click "Export PDF" to save a printable barcode card PDF.
- *
- * Also supports single-student QR generation with server URL encoding.
  */
 public class BulkBarcodeScreen extends VBox {
 
@@ -54,10 +50,6 @@ public class BulkBarcodeScreen extends VBox {
 
     // Current students for the selected class
     private List<Student> currentStudents;
-
-    // HTTP server (shared state for QR URL encoding)
-    private AttendanceHttpServer httpServer;
-    private String serverIp;
 
     public BulkBarcodeScreen() {
         UserRepository userRepository = new UserRepository();
@@ -77,7 +69,7 @@ public class BulkBarcodeScreen extends VBox {
     private void buildUI() {
         Label title = new Label("Bulk Barcode Generation");
         title.getStyleClass().add("page-title");
-        Label subtitle = new Label("Generate barcodes for an entire class — Code 128 + QR");
+        Label subtitle = new Label("Generate Code 128 barcodes for an entire class");
         subtitle.getStyleClass().add("page-subtitle");
         VBox header = new VBox(5, title, subtitle);
 
@@ -141,18 +133,6 @@ public class BulkBarcodeScreen extends VBox {
         exportPdfButton.getStyleClass().add("secondary-button");
         exportPdfButton.setOnAction(e -> exportPdf());
 
-        // Server controls for phone scanning
-        Button startServerBtn = new Button("Start Scan Server");
-        startServerBtn.getStyleClass().add("secondary-button");
-
-        Button stopServerBtn = new Button("Stop Server");
-        stopServerBtn.getStyleClass().add("danger-button");
-        stopServerBtn.setDisable(true);
-        stopServerBtn.setOnAction(e -> stopServer(startServerBtn, stopServerBtn));
-
-        // Wire the start button with both button references
-        startServerBtn.setOnAction(e -> startServer(startServerBtn, stopServerBtn));
-
         HBox row1 = new HBox(12,
             new VBox(3, new Label("Faculty"), facultySelector),
             new VBox(3, new Label("Class / Section"), classSelector),
@@ -161,10 +141,8 @@ public class BulkBarcodeScreen extends VBox {
         row1.setAlignment(Pos.BOTTOM_LEFT);
 
         HBox row2 = new HBox(12, generateAllButton, exportPdfButton);
-        HBox row3 = new HBox(12, new Label("Phone Scanning:"), startServerBtn, stopServerBtn);
-        row3.setAlignment(Pos.CENTER_LEFT);
 
-        card.getChildren().addAll(label, row1, new Separator(), row2, row3);
+        card.getChildren().addAll(label, row1, new Separator(), row2);
         return card;
     }
 
@@ -249,7 +227,7 @@ public class BulkBarcodeScreen extends VBox {
             "-fx-background-color: white; -fx-border-color: #d1d9e0; " +
             "-fx-border-radius: 8; -fx-background-radius: 8;"
         );
-        card.setPrefWidth(240);
+        card.setPrefWidth(260);
 
         Label nameLabel = new Label(student.getName());
         nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
@@ -267,17 +245,7 @@ public class BulkBarcodeScreen extends VBox {
         barcodeView.setFitHeight(55);
         barcodeView.setPreserveRatio(true);
 
-        // QR code image
-        String qrContent = (httpServer != null && httpServer.isRunning() && serverIp != null)
-            ? "http://" + serverIp + ":" + AttendanceHttpServer.PORT + "/mark?roll=" + student.getRollNo()
-            : String.valueOf(student.getRollNo());
-        BufferedImage qrImg = barcodeService.generateQrCodeFromString(qrContent, 100);
-        WritableImage fxQr = SwingFXUtils.toFXImage(qrImg, null);
-        ImageView qrView = new ImageView(fxQr);
-        qrView.setFitWidth(90);
-        qrView.setFitHeight(90);
-
-        card.getChildren().addAll(nameLabel, rollLabel, barcodeView, qrView);
+        card.getChildren().addAll(nameLabel, rollLabel, barcodeView);
         return card;
     }
 
@@ -294,23 +262,13 @@ public class BulkBarcodeScreen extends VBox {
             ? "barcodes_class" + sel.getClassNumber() + "_" + sel.getSection() + ".pdf"
             : "barcodes.pdf";
 
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Save Barcode PDF");
-        fileChooser.setInitialFileName(filename);
-        fileChooser.getExtensionFilters().add(
-            new FileChooser.ExtensionFilter("PDF Files", "*.pdf")
-        );
-
-        File file = fileChooser.showSaveDialog(getScene().getWindow());
-        if (file == null) return;
-
-        String baseUrl = (httpServer != null && httpServer.isRunning() && serverIp != null)
-            ? "http://" + serverIp + ":" + AttendanceHttpServer.PORT
-            : null;
+        Window owner = (getScene() != null) ? getScene().getWindow() : null;
+        File file = FileChooserUtil.showSaveDialog(owner, "Save Barcode PDF", filename, "PDF Files", "pdf");
+        if (file == null) return; // User cancelled
 
         try {
             BarcodePdfService pdfService = new BarcodePdfService();
-            pdfService.generatePdf(currentStudents, file, baseUrl);
+            pdfService.generatePdf(currentStudents, file);
             setStatus("PDF saved to: " + file.getAbsolutePath());
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("PDF Exported");
@@ -326,31 +284,6 @@ public class BulkBarcodeScreen extends VBox {
             alert.setContentText("Failed to export PDF:\n" + e.getMessage());
             alert.showAndWait();
         }
-    }
-
-    // ── Server Controls ───────────────────────────────────────
-
-    private void startServer(Button startBtn, Button stopBtn) {
-        try {
-            httpServer = new AttendanceHttpServer();
-            httpServer.startServer();
-            serverIp = InetAddress.getLocalHost().getHostAddress();
-            setStatus("Scan server running on http://" + serverIp + ":" + AttendanceHttpServer.PORT
-                + " — Re-generate barcodes to get phone-scannable QRs.");
-            startBtn.setDisable(true);
-            stopBtn.setDisable(false);
-        } catch (Exception e) {
-            setStatus("Failed to start server: " + e.getMessage());
-        }
-    }
-
-    private void stopServer(Button startBtn, Button stopBtn) {
-        if (httpServer != null) httpServer.stopServer();
-        httpServer = null;
-        serverIp = null;
-        startBtn.setDisable(false);
-        stopBtn.setDisable(true);
-        setStatus("Scan server stopped.");
     }
 
     private void setStatus(String msg) {

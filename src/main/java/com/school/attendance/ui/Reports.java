@@ -3,6 +3,7 @@ package com.school.attendance.ui;
 import com.school.attendance.model.AttendanceStatus;
 import com.school.attendance.repository.AttendanceRepository;
 import com.school.attendance.repository.StudentRepository;
+import com.school.attendance.service.AttendanceReportPdfService;
 import com.school.attendance.service.AttendanceService;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -16,7 +17,7 @@ import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.stage.FileChooser;
+import javafx.stage.Window;
 
 public class Reports extends BorderPane {
 
@@ -64,8 +65,10 @@ public class Reports extends BorderPane {
 
         Label label = new Label("REPORT FILTERS");
         label.getStyleClass().add("stat-title");
+
         // Date
         datePicker.setPrefHeight(42);
+
         // Class
         classFilter.getItems().add("All");
         for (int i = 1; i <= 12; i++) {
@@ -74,6 +77,7 @@ public class Reports extends BorderPane {
         classFilter.setValue("All");
         classFilter.setPrefHeight(42);
         classFilter.setPrefWidth(150);
+
         // Section
         sectionFilter.getItems().addAll("All", "A", "B", "C", "D");
         sectionFilter.setValue("All");
@@ -87,10 +91,16 @@ public class Reports extends BorderPane {
         viewButton.setOnAction(event -> loadReport());
 
         // Export CSV button
-        Button exportButton = new Button("Export CSV");
-        exportButton.getStyleClass().add("secondary-button");
-        exportButton.setPrefHeight(42);
-        exportButton.setOnAction(event -> exportCsv());
+        Button exportCsvButton = new Button("Export CSV");
+        exportCsvButton.getStyleClass().add("secondary-button");
+        exportCsvButton.setPrefHeight(42);
+        exportCsvButton.setOnAction(event -> exportCsv());
+
+        // Export PDF button
+        Button exportPdfButton = new Button("Export PDF");
+        exportPdfButton.getStyleClass().add("secondary-button");
+        exportPdfButton.setPrefHeight(42);
+        exportPdfButton.setOnAction(event -> exportPdf());
 
         Label dateLabel = new Label("Date");
         Label classLabel = new Label("Class");
@@ -98,7 +108,7 @@ public class Reports extends BorderPane {
         VBox dateBox = new VBox(5, dateLabel, datePicker);
         VBox classBox = new VBox(5, classLabel, classFilter);
         VBox sectionBox = new VBox(5, sectionLabel, sectionFilter);
-        HBox row = new HBox(20, dateBox, classBox, sectionBox, viewButton, exportButton);
+        HBox row = new HBox(20, dateBox, classBox, sectionBox, viewButton, exportCsvButton, exportPdfButton);
         row.setAlignment(javafx.geometry.Pos.BOTTOM_LEFT);
         card.getChildren().addAll(label, row);
 
@@ -250,25 +260,23 @@ public class Reports extends BorderPane {
         absentValue.setText(String.valueOf(absent));
     }
 
+    /** Returns the owning Window, or null if not yet in a scene. */
+    private javafx.stage.Window getOwnerWindow() {
+        return (getScene() != null) ? getScene().getWindow() : null;
+    }
+
     private void exportCsv() {
         List<Object[]> records = reportTable.getItems();
         if (records == null || records.isEmpty()) {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Export CSV");
-            alert.setHeaderText(null);
-            alert.setContentText("No data to export.");
-            alert.showAndWait();
+            showInfo("Export CSV", "No data to export. Load a report first.");
             return;
         }
 
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Save Attendance CSV");
-        fileChooser.setInitialFileName("attendance_report.csv");
-        fileChooser.getExtensionFilters().add(
-            new FileChooser.ExtensionFilter("CSV Files", "*.csv")
-        );
-
-        File file = fileChooser.showSaveDialog(getScene().getWindow());
+        String dateStr = (datePicker.getValue() != null)
+            ? datePicker.getValue().toString()
+            : LocalDate.now().toString();
+        String defaultName = "attendance_report_" + dateStr + ".csv";
+        File file = FileChooserUtil.showSaveDialog(getOwnerWindow(), "Save Attendance CSV", defaultName, "CSV Files", "csv");
         if (file == null) return; // User cancelled
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
@@ -291,18 +299,40 @@ public class Reports extends BorderPane {
                 );
                 writer.newLine();
             }
-            Alert success = new Alert(Alert.AlertType.INFORMATION);
-            success.setTitle("Export CSV");
-            success.setHeaderText(null);
-            success.setContentText("CSV exported successfully to:\n" + file.getAbsolutePath());
-            success.showAndWait();
+            showInfo("Export CSV", "CSV exported successfully to:\n" + file.getAbsolutePath());
         } catch (IOException e) {
             e.printStackTrace();
-            Alert error = new Alert(Alert.AlertType.ERROR);
-            error.setTitle("Export CSV");
-            error.setHeaderText(null);
-            error.setContentText("Failed to save CSV: " + e.getMessage());
-            error.showAndWait();
+            showError("Export CSV", "Failed to save CSV:\n" + e.getMessage());
+        }
+    }
+
+    private void exportPdf() {
+        List<Object[]> records = reportTable.getItems();
+        if (records == null || records.isEmpty()) {
+            showInfo("Export PDF", "No data to export. Load a report first.");
+            return;
+        }
+
+        LocalDate reportDate = (datePicker.getValue() != null)
+            ? datePicker.getValue()
+            : LocalDate.now();
+        String defaultName = "attendance_report_" + reportDate.toString() + ".pdf";
+        File file = FileChooserUtil.showSaveDialog(getOwnerWindow(), "Save Attendance PDF", defaultName, "PDF Files", "pdf");
+        if (file == null) return; // User cancelled
+
+        try {
+            AttendanceReportPdfService pdfService = new AttendanceReportPdfService();
+            pdfService.generatePdf(
+                records,
+                reportDate,
+                classFilter.getValue(),
+                sectionFilter.getValue(),
+                file
+            );
+            showInfo("Export PDF", "PDF exported successfully to:\n" + file.getAbsolutePath());
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError("Export PDF", "Failed to generate PDF:\n" + e.getMessage());
         }
     }
 
@@ -313,5 +343,20 @@ public class Reports extends BorderPane {
         }
         return value;
     }
-}
 
+    private void showInfo(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    private void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+}
